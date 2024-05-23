@@ -7,10 +7,10 @@ process PHYLOSEQ_INTAX {
         'biocontainers/pandas:1.1.5' }"
 
     input:
-    path(tax_tsv)
+    tuple val(meta),path(tax_tsv)
 
     output:
-    path( "*.tsv" )          , emit: tsv
+    tuple val(meta), path( "*.tsv" ), emit: tsv
     path "versions.yml"      , emit: versions
 
     when:

@@ -1,5 +1,5 @@
 process PHYLOSEQ {
-    tag "$prefix"
+    tag "${meta.classifier}"
     label 'process_low'
 
     conda "bioconda::bioconductor-phyloseq=1.46.0"
@@ -8,13 +8,13 @@ process PHYLOSEQ {
         'biocontainers/bioconductor-phyloseq:1.46.0--r43hdfd78af_0' }"
 
     input:
-    tuple val(prefix), path(tax_tsv), path(otu_tsv)
+    tuple val(meta), path(tax_tsv), path(otu_tsv)
     path sam_tsv
     path tree
 
     output:
-    tuple val(prefix), path("*phyloseq.rds"), emit: rds
-    path "versions.yml"                     , emit: versions
+    tuple val(meta), path("*phyloseq.rds"), emit: rds
+    path "versions.yml"                   , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -24,7 +24,7 @@ process PHYLOSEQ {
     def otu_tsv = "\"${otu_tsv}\""
     def tax_tsv = "\"${tax_tsv}\""
     def tree    = "\"${tree}\""
-    def prefix  = "\"${prefix}\""
+    def prefix  = meta.classifier ? "\"${meta.classifier}\"" : "\"prefix\""
     """
     #!/usr/bin/env Rscript
 
