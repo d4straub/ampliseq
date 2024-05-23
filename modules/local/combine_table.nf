@@ -1,5 +1,5 @@
 process COMBINE_TABLE {
-    tag "${meta.classifier}"
+    tag "${meta.classifier}_${meta.database}"
     label 'process_low'
 
     conda "bioconda::bioconductor-biostrings=2.58.0"
@@ -18,7 +18,7 @@ process COMBINE_TABLE {
     task.ext.when == null || task.ext.when
 
     script:
-    def outfile = "rel-table-ASV_with-${meta.classifier}-tax.tsv"
+    def outfile = "rel-table-ASV_with-${meta.classifier}-${meta.database}-tax.tsv"
     """
     combine_table.r ${table} ${seq} ${tax}
     mv combined_ASV_table.tsv ${outfile}
