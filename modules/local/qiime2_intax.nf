@@ -5,7 +5,7 @@ process QIIME2_INTAX {
     container "qiime2/core:2023.7"
 
     input:
-    path(tax) //ASV_tax_species.tsv
+    tuple val(meta),path(tax) //ASV_tax_species.tsv
     val(script)
 
     output:
