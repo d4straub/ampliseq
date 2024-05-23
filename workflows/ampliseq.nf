@@ -859,6 +859,24 @@ workflow AMPLISEQ {
     }
 
     //
+    // SUBWORKFLOW: benchmarking
+    //
+    if ( params.benchmarking_sequences || params.benchmarking_taxonomy || params.benchmarking_barplot ) {
+        BENCHMARKING_WF (
+            //benchmarking_sequences
+            DADA2_MERGE.out.dada2asv,
+            params.benchmarking_sequences ? Channel.fromPath("${params.benchmarking_sequences}", checkIfExists: true) : Channel.empty(),
+            //benchmarking_taxonomy
+            run_qiime2 && !params.skip_abundance_tables ? QIIME2_EXPORT.out.comb_asv : Channel.empty(),
+            params.benchmarking_taxonomy ? Channel.fromPath("${params.benchmarking_taxonomy}", checkIfExists: true) : Channel.empty(),
+            //benchmarking_barplot
+            run_qiime2 && !params.skip_barplot ? QIIME2_BARPLOT.out.folder.map { it = [ [database:val_used_ref_database, classifier:val_used_taxonomy], it ] } : Channel.empty(),
+            params.benchmarking_barplot ? Channel.fromPath("${params.benchmarking_barplot}", checkIfExists: true) : Channel.empty()
+        )
+        ch_versions = ch_versions.mix(BENCHMARKING_WF.out.versions)
+    }
+
+    //
     // MODULE: Predict functional potential of a bacterial community from marker genes with Picrust2
     //
     if ( params.picrust ) {
