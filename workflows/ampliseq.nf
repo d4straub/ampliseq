@@ -238,6 +238,7 @@ include { QIIME2_BARPLOTAVG             } from '../subworkflows/local/qiime2_bar
 include { QIIME2_DIVERSITY              } from '../subworkflows/local/qiime2_diversity'
 include { QIIME2_ANCOM                  } from '../subworkflows/local/qiime2_ancom'
 include { PHYLOSEQ_WORKFLOW             } from '../subworkflows/local/phyloseq_workflow'
+include { BENCHMARKING_WF               } from '../subworkflows/local/benchmarking_wf'
 
 //
 // FUNCTIONS
@@ -604,9 +605,10 @@ workflow AMPLISEQ {
             ch_fasta,
             ch_full_fasta,
             taxlevels
-        ).tax.set { ch_dada2_tax }
+        )
+        ch_dada2_tax = DADA2_TAXONOMY_WF.out.tax.map { it = [ [database:val_dada_ref_taxonomy, classifier:"dada2"], file(it) ] }
         ch_versions = ch_versions.mix(DADA2_TAXONOMY_WF.out.versions)
-        ch_tax_for_phyloseq = ch_tax_for_phyloseq.mix ( ch_dada2_tax.map { it = [ "dada2", file(it) ] } )
+        ch_tax_for_phyloseq = ch_tax_for_phyloseq.mix ( ch_dada2_tax )
     } else {
         ch_dada2_tax = Channel.empty()
     }
@@ -618,11 +620,13 @@ workflow AMPLISEQ {
             val_kraken2_ref_taxonomy,
             ch_fasta,
             kraken2_taxlevels
-        ).qiime2_tsv.set { ch_kraken2_tax }
+        )
+        ch_kraken2_tax = KRAKEN2_TAXONOMY_WF.out.qiime2_tsv.map { it = [ [database:val_kraken2_ref_taxonomy, classifier:"kraken2"], file(it) ] }
+        ch_kraken2_tax_tsv = KRAKEN2_TAXONOMY_WF.out.tax_tsv.map { it = [ [database:val_kraken2_ref_taxonomy, classifier:"kraken2"], file(it) ] }
         ch_versions = ch_versions.mix(KRAKEN2_TAXONOMY_WF.out.versions)
-        ch_tax_for_phyloseq = ch_tax_for_phyloseq.mix ( ch_kraken2_tax.map { it = [ "kraken2", file(it) ] } )
+        ch_tax_for_phyloseq = ch_tax_for_phyloseq.mix ( ch_kraken2_tax )
     } else {
-        ch_kraken2_tax = Channel.empty()
+        ch_kraken2_tax_tsv = Channel.empty()
     }
 
     // SINTAX
@@ -633,9 +637,10 @@ workflow AMPLISEQ {
             ch_fasta,
             ch_full_fasta,
             sintax_taxlevels
-        ).tax.set { ch_sintax_tax }
+        )
+        ch_sintax_tax = SINTAX_TAXONOMY_WF.out.tax.map { it = [ [database:val_sintax_ref_taxonomy, classifier:"sintax"], file(it) ] }
         ch_versions = ch_versions.mix(SINTAX_TAXONOMY_WF.out.versions)
-        ch_tax_for_phyloseq = ch_tax_for_phyloseq.mix ( ch_sintax_tax.map { it = [ "sintax", file(it) ] } )
+        ch_tax_for_phyloseq = ch_tax_for_phyloseq.mix ( ch_sintax_tax )
     } else {
         ch_sintax_tax = Channel.empty()
     }
@@ -656,8 +661,8 @@ workflow AMPLISEQ {
         }
         FASTA_NEWICK_EPANG_GAPPA ( ch_pp_data )
         ch_versions = ch_versions.mix( FASTA_NEWICK_EPANG_GAPPA.out.versions )
-        ch_pplace_tax = FORMAT_PPLACETAX ( FASTA_NEWICK_EPANG_GAPPA.out.taxonomy_per_query ).tsv
-        ch_tax_for_phyloseq = ch_tax_for_phyloseq.mix ( PHYLOSEQ_INTAX_PPLACE ( ch_pplace_tax ).tsv.map { it = [ "pplace", file(it) ] } )
+        ch_pplace_tax = FORMAT_PPLACETAX ( FASTA_NEWICK_EPANG_GAPPA.out.taxonomy_per_query ).tsv.map { it = [ [database:val_pplace_ref_taxonomy, classifier:"pplace"], file(it) ] }
+        ch_tax_for_phyloseq = ch_tax_for_phyloseq.mix ( PHYLOSEQ_INTAX_PPLACE ( ch_pplace_tax ).tsv )
     } else {
         ch_pplace_tax = Channel.empty()
     }
@@ -678,8 +683,11 @@ workflow AMPLISEQ {
             ch_qiime_classifier
         )
         ch_versions = ch_versions.mix( QIIME2_TAXONOMY.out.versions )
-        ch_qiime2_tax = QIIME2_TAXONOMY.out.tsv
-        ch_tax_for_phyloseq = ch_tax_for_phyloseq.mix ( PHYLOSEQ_INTAX_QIIME2 ( ch_qiime2_tax ).tsv.map { it = [ "qiime2", file(it) ] } )
+        ch_qiime2_tax =
+            PHYLOSEQ_INTAX_QIIME2 (
+                QIIME2_TAXONOMY.out.tsv.map { it = [ [database:val_qiime_ref_taxonomy, classifier:"qiime2"], file(it) ] }
+            ).tsv
+        ch_tax_for_phyloseq = ch_tax_for_phyloseq.mix ( ch_qiime2_tax )
     } else {
         ch_qiime2_tax = Channel.empty()
     }
@@ -706,36 +714,44 @@ workflow AMPLISEQ {
         if ( params.skip_taxonomy ) {
             log.info "Skip taxonomy classification"
             val_used_taxonomy = "skipped"
+            val_used_ref_database = "skipped"
             ch_tax = Channel.empty()
             tax_agglom_min = 1
             tax_agglom_max = 2
         } else if ( params.multiregion ) {
             log.info "Use multi-region SIDLE taxonomy classification"
             val_used_taxonomy = "SIDLE"
+            val_used_ref_database = val_sidle_ref_taxonomy
             ch_tax = SIDLE_WF.out.tax_qza
         } else if ( params.pplace_tree && params.pplace_taxonomy) {
             log.info "Use EPA-NG / GAPPA taxonomy classification"
-            val_used_taxonomy = "phylogenetic placement"
+            val_used_taxonomy = "phylogenetic_placement"
+            val_used_ref_database = ""
             ch_tax = QIIME2_INTAX ( ch_pplace_tax, "parse_dada2_taxonomy.r" ).qza
         } else if ( params.dada_ref_taxonomy && !params.skip_dada_taxonomy ) {
             log.info "Use DADA2 taxonomy classification"
             val_used_taxonomy = "DADA2"
+            val_used_ref_database = val_dada_ref_taxonomy
             ch_tax = QIIME2_INTAX ( ch_dada2_tax, "parse_dada2_taxonomy.r" ).qza
         } else if ( params.sintax_ref_taxonomy ) {
             log.info "Use SINTAX taxonomy classification"
             val_used_taxonomy = "SINTAX"
+            val_used_ref_database = val_sintax_ref_taxonomy
             ch_tax = QIIME2_INTAX ( ch_sintax_tax, "parse_dada2_taxonomy.r" ).qza
         } else if ( params.kraken2_ref_taxonomy || params.kraken2_ref_tax_custom ) {
             log.info "Use Kraken2 taxonomy classification"
             val_used_taxonomy = "Kraken2"
+            val_used_ref_database = val_kraken2_ref_taxonomy
             ch_tax = QIIME2_INTAX ( ch_kraken2_tax, "" ).qza
         } else if ( params.qiime_ref_taxonomy || params.qiime_ref_tax_custom || params.classifier ) {
             log.info "Use QIIME2 taxonomy classification"
             val_used_taxonomy = "QIIME2"
+            val_used_ref_database = val_qiime_ref_taxonomy
             ch_tax = QIIME2_TAXONOMY.out.qza
         } else {
             log.info "Use no taxonomy classification"
             val_used_taxonomy = "none"
+            val_used_ref_database = "none"
             ch_tax = Channel.empty()
             tax_agglom_min = 1
             tax_agglom_max = 2
@@ -767,7 +783,13 @@ workflow AMPLISEQ {
         }
         //Export various ASV tables
         if (!params.skip_abundance_tables) {
-            QIIME2_EXPORT ( ch_asv, ch_seq, ch_tax, ch_qiime2_tax, ch_dada2_tax, ch_pplace_tax, ch_sintax_tax, tax_agglom_min, tax_agglom_max )
+            QIIME2_EXPORT (
+                ch_asv,
+                ch_seq,
+                ch_tax,
+                ch_qiime2_tax.mix(ch_dada2_tax).mix(ch_pplace_tax).mix(ch_sintax_tax).mix(ch_kraken2_tax_tsv),
+                tax_agglom_min,
+                tax_agglom_max )
             ch_versions = ch_versions.mix( QIIME2_EXPORT.out.versions )
         }
 
@@ -963,11 +985,11 @@ workflow AMPLISEQ {
             params.filter_codons ? FILTER_CODONS.out.fasta.ifEmpty( [] ) : [],
             params.filter_codons ? FILTER_CODONS.out.stats.ifEmpty( [] ) : [],
             params.cut_its != "none" ? ITSX_CUTASV.out.summary.ifEmpty( [] ) : [],
-            !params.skip_taxonomy && params.dada_ref_taxonomy && !params.skip_dada_taxonomy ? ch_dada2_tax.ifEmpty( [] ) : [],
+            !params.skip_taxonomy && params.dada_ref_taxonomy && !params.skip_dada_taxonomy ? ch_dada2_tax.map{it[1]}.ifEmpty( [] ) : [],
             !params.skip_taxonomy && params.dada_ref_taxonomy && !params.skip_dada_taxonomy ? DADA2_TAXONOMY_WF.out.cut_tax.ifEmpty( [[],[]] ) : [[],[]],
-            !params.skip_taxonomy && params.sintax_ref_taxonomy ? ch_sintax_tax.ifEmpty( [] ) : [],
+            !params.skip_taxonomy && params.sintax_ref_taxonomy ? ch_sintax_tax.map{it[1]}.ifEmpty( [] ) : [],
             !params.skip_taxonomy && ( params.kraken2_ref_taxonomy || params.kraken2_ref_tax_custom ) ? KRAKEN2_TAXONOMY_WF.out.tax_tsv.ifEmpty( [] ) : [],
-            !params.skip_taxonomy && params.pplace_tree ? ch_pplace_tax.ifEmpty( [] ) : [],
+            !params.skip_taxonomy && params.pplace_tree ? ch_pplace_tax.map{it[1]}.ifEmpty( [] ) : [],
             !params.skip_taxonomy && params.pplace_tree ? FASTA_NEWICK_EPANG_GAPPA.out.heattree.ifEmpty( [[],[]] ) : [[],[]],
             !params.skip_taxonomy && ( params.qiime_ref_taxonomy || params.qiime_ref_tax_custom || params.classifier ) && run_qiime2_taxonomy ? QIIME2_TAXONOMY.out.tsv.ifEmpty( [] ) : [],
             run_qiime2,
