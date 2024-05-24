@@ -663,21 +663,28 @@
                     "format": "file-path",
                     "fa_icon": "fas fa-dna",
                     "description": "Path to file with expected sequences",
-                    "help_text": "Either in fasta format or tab-separated. The former must have only a single row per sequence (no row breaks in one sequence). The latter one row per sequence and samples as columns, with header (samples). Values are abundances."
+                    "help_text": "This will compare the number of exact sequence matches of observed and expected sequences. File either in fasta format or tab-separated. The former must have only a single row per sequence (no row breaks in one sequence). The latter one row per sequence and samples as columns, with header (samples). Values are abundances (only to determine precence/absence)."
                 },
                 "benchmarking_taxonomy": {
                     "type": "string",
                     "format": "file-path",
                     "mimetype": "text/tsv",
                     "description": "Path to file with expected taxonomies",
-                    "help_text": "One row per sequence and optionally samples as columns, with header (samples). First column contains sequences, other values are abundances (only to determine precence/absence)."
+                    "help_text": "This will compare observed taxonomic classification and expected taxonomies, on a per-sequence basis. File with one row per sequence and optionally samples as columns, with header (samples). First column contains sequences, other values are abundances (only to determine precence/absence)."
                 },
                 "benchmarking_barplot": {
                     "type": "string",
                     "format": "file-path",
                     "mimetype": "text/tsv",
                     "description": "Path to file with expected taxonomies in barplot",
-                    "help_text": "One row per taxonomical string and optionally samples as columns, with header (samples). First column contains taxonomical string, other values are sample specific abundances (only to determine precence/absence)."
+                    "help_text": "This will compare observed taxonomic classification and expected taxonomies, using the barplot (aggregated entries, not per-sequence). File with one row per taxonomical string and optionally samples as columns, with header (samples). First column contains taxonomical string, other values are sample specific abundances (only to determine precence/absence)."
+                },
+                "benchmarking_diversity": {
+                    "type": "string",
+                    "format": "file-path",
+                    "mimetype": "text/tsv",
+                    "description": "Comma separated paths to file with feature abundances and to file with feature sequences (fasta)",
+                    "help_text": "This will compute beta diversity measures between observed and expected sequences and abundances. File with feature abundances must have md5sums in first column, corresponding to sequence names in fasta file. Feature abundances must have one column per compared sample, with the identical sample ID as in sample sheet and metadata sheet."
                 }
             },
             "fa_icon": "fas fa-filter"
@@ -776,6 +783,10 @@
                 "skip_ancom": {
                     "type": "boolean",
                     "description": "Skip differential abundance testing"
+                },
+                "skip_phyloseq": {
+                    "type": "boolean",
+                    "description": "Skip phyloseq object creation"
                 },
                 "skip_multiqc": {
                     "type": "boolean",
