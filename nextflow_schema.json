@@ -684,7 +684,7 @@
                     "format": "file-path",
                     "mimetype": "text/tsv",
                     "description": "Comma separated paths to file with feature abundances and to file with feature sequences (fasta)",
-                    "help_text": "This will compute beta diversity measures between observed and expected sequences and abundances. File with feature abundances must have md5sums in first column, corresponding to sequence names in fasta file. Feature abundances must have one column per compared sample, with the identical sample ID as in sample sheet and metadata sheet."
+                    "help_text": "This will compute beta diversity measures between observed and expected sequences and abundances. Note: Distances are not stable because of non-deterministic subsampling of reads. File with feature abundances must have md5sums in first column, corresponding to sequence names in fasta file. Feature abundances must have one column per compared sample, with the identical sample ID as in sample sheet and metadata sheet. \n\nRelated parameters are:\n- `--metadata`: required for running the QIIME2 diversity plugin\n- `--diversity_rarefaction_depth`: rarefaction depth [Note: the larger the less variable will be the resulting distances]"
                 }
             },
             "fa_icon": "fas fa-filter"
