@@ -1,15 +1,16 @@
-process QIIME2_INASV {
-    tag "${asv}"
+process QIIME2_MERGE_SEQ {
+    tag "${file1} + ${file2}"
     label 'process_low'
 
     container "qiime2/core:2023.7"
 
     input:
-    path(asv)
+    path(file1, stageAs: 'one/*')
+    path(file2, stageAs: 'two/*')
 
     output:
-    path("table.qza")    , emit: qza
-    path "versions.yml"  , emit: versions
+    path("seq_merged.qza"), emit: qza
+    path "versions.yml"     , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -19,24 +20,15 @@ process QIIME2_INASV {
     if (workflow.profile.tokenize(',').intersect(['conda', 'mamba']).size() >= 1) {
         error "QIIME2 does not support Conda. Please use Docker / Singularity / Podman instead."
     }
-    def args = task.ext.args ?: ''
     """
+    export XDG_CONFIG_HOME="./xdgconfig"
     export MPLCONFIGDIR="./mplconfigdir"
     export NUMBA_CACHE_DIR="./numbacache"
 
-    # remove first line if needed
-    sed '/^# Constructed from biom file/d' "$asv" > biom-table.txt
-
-    # any manipulation
-    $args
-
-    # load into QIIME2
-    biom convert -i biom-table.txt -o table.biom --table-type="OTU table" --to-hdf5
-    qiime tools import \\
-        --input-path table.biom \\
-        --type 'FeatureTable[Frequency]' \\
-        --input-format BIOMV210Format \\
-        --output-path table.qza
+    qiime feature-table merge-seqs \\
+        --i-data $file1 \\
+        --i-data $file2 \\
+        --o-merged-data seq_merged.qza
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

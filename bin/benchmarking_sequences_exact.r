@@ -11,15 +11,18 @@ resFILE         <- args[2] # calculated sequences*
 fbeta           <- args[3] # Fbeta weight, default 2; 1=precision and recall equally weighted (=F1 score), 2=weighs recall higher than precision, 0.5=weighs recall lower than precision.
 prefix          <- args[4] # prefix string for output files
 id_header       <- args[5] # column header in "resFILE" that contains the first column IDs corresponding to "expFILE"
+tag             <- args[6] # tag in results tables
 #*: fasta OR tab separeted file with header: first column with sequences strings, following none or many columns (=samples) with numeric values (=abundance), only presence/absence are used here
 
 # Read params, use defaults if not provided
 if ( is.na(fbeta) )         { fbeta <- 2 }
 if ( is.na(prefix) )        { prefix <- "" }
 if ( is.na(id_header) )     { id_header <- "" }
+if ( is.na(tag) )           { tag <- "unspecified" }
 fbeta <- as.numeric(fbeta)
 
 # Input
+print(paste("Use files",expFILE,"and",resFILE))
 
 # Read stuff
 exp = read.table( expFILE, header = TRUE, sep = "\t", stringsAsFactors = FALSE, check.names = FALSE, strip.white = TRUE)
@@ -146,6 +149,7 @@ if( ncol(exp)>=2 && ncol(res)>=2 ) {
 }
 
 # Write detailed output
+df$tag <- rep(tag, nrow(df))
 outfile <- paste0(prefix,"benchmarking_stats_long.tsv")
 print(paste("write",outfile))
 write.table(df, file = outfile, row.names = FALSE, col.names = TRUE, quote = FALSE, na = '', sep="\t")
@@ -159,6 +163,7 @@ for (type in unique(df$type)) {
 	MEAN <- mean( as.numeric(df_subset$value) )
 	df_sum[nrow(df_sum) + 1,] <- list(type, MEAN)
 }
+df_sum$tag <- rep(tag, nrow(df_sum))
 print(paste("write",outfile))
 write.table(df_sum, file = outfile, row.names = FALSE, col.names = TRUE, quote = FALSE, na = '', sep="\t")
 

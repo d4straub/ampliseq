@@ -1,4 +1,5 @@
 process BENCHMARKING_SEQUENCES {
+    tag "${md5sum_version}"
     label 'process_single'
 
     conda "conda-forge::r-base=4.2.1"
@@ -9,6 +10,7 @@ process BENCHMARKING_SEQUENCES {
     input:
     path(observed)
     path(expected)
+    val(md5sum_version)
 
     output:
     path("*.svg")                            , emit: svgs
@@ -16,6 +18,7 @@ process BENCHMARKING_SEQUENCES {
     path("*benchmarking_stats_mean.tsv")     , emit: mean_tsv
     path("*benchmarking_stats_long.tsv")     , emit: long_tsv
     path("*benchmarking_sequences_exact.log"), emit: log
+    path("*.md5sum_version")                 , emit: md5sum_version
     path "versions.yml"                      , emit: versions
 
     when:
@@ -32,7 +35,10 @@ process BENCHMARKING_SEQUENCES {
         "$fbeta" \\
         "$prefix" \\
         "$id_header" \\
+        "$md5sum_version" \\
         >${prefix}benchmarking_sequences_exact.log
+
+    echo "md5sum_version $md5sum_version" > "${md5sum_version}.md5sum_version"
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

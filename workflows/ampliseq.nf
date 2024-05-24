@@ -861,8 +861,10 @@ workflow AMPLISEQ {
     //
     // SUBWORKFLOW: benchmarking
     //
-    if ( params.benchmarking_sequences || params.benchmarking_taxonomy || params.benchmarking_barplot ) {
+    if ( params.benchmarking_sequences || params.benchmarking_taxonomy || params.benchmarking_barplot || params.benchmarking_diversity ) {
         BENCHMARKING_WF (
+            //md5sum of params appended by pipeline version
+            ( params.toString().md5() + "_${workflow.manifest.version}" ),
             //benchmarking_sequences
             DADA2_MERGE.out.dada2asv,
             params.benchmarking_sequences ? Channel.fromPath("${params.benchmarking_sequences}", checkIfExists: true) : Channel.empty(),
@@ -871,7 +873,13 @@ workflow AMPLISEQ {
             params.benchmarking_taxonomy ? Channel.fromPath("${params.benchmarking_taxonomy}", checkIfExists: true) : Channel.empty(),
             //benchmarking_barplot
             run_qiime2 && !params.skip_barplot ? QIIME2_BARPLOT.out.folder.map { it = [ [database:val_used_ref_database, classifier:val_used_taxonomy], it ] } : Channel.empty(),
-            params.benchmarking_barplot ? Channel.fromPath("${params.benchmarking_barplot}", checkIfExists: true) : Channel.empty()
+            params.benchmarking_barplot ? Channel.fromPath("${params.benchmarking_barplot}", checkIfExists: true) : Channel.empty(),
+            //benchmarking_diversity
+            params.benchmarking_diversity,
+            params.diversity_rarefaction_depth,
+            run_qiime2 ? ch_asv : Channel.empty(),
+            run_qiime2 ? ch_seq : Channel.empty(),
+            ch_metadata
         )
         ch_versions = ch_versions.mix(BENCHMARKING_WF.out.versions)
     }
@@ -907,7 +915,7 @@ workflow AMPLISEQ {
     //
     // SUBWORKFLOW: Create phyloseq objects
     //
-    if ( !params.skip_taxonomy ) {
+    if ( !params.skip_phyloseq && !params.skip_taxonomy ) {
         if ( params.pplace_tree ) {
             ch_tree_for_phyloseq = FASTA_NEWICK_EPANG_GAPPA.out.grafted_phylogeny
         } else {
@@ -1024,7 +1032,7 @@ workflow AMPLISEQ {
             run_qiime2 && !params.skip_ancom && params.metadata ? QIIME2_ANCOM.out.ancom.collect().ifEmpty( [] ) : [],
             params.picrust ? PICRUST.out.pathways.ifEmpty( [] ) : [],
             params.sbdiexport ? SBDIEXPORT.out.sbditables.mix(SBDIEXPORTREANNOTATE.out.sbdiannottables).collect().ifEmpty( [] ) : [],
-            !params.skip_taxonomy ? PHYLOSEQ_WORKFLOW.out.rds.map{info,rds -> [rds]}.collect().ifEmpty( [] ) : []
+            !params.skip_phyloseq && !params.skip_taxonomy ? PHYLOSEQ_WORKFLOW.out.rds.map{info,rds -> [rds]}.collect().ifEmpty( [] ) : []
         )
         ch_versions    = ch_versions.mix(SUMMARY_REPORT.out.versions)
     }
