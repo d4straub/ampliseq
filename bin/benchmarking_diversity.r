@@ -57,6 +57,13 @@ outfile <- paste0(prefix,".control.tsv")
 print(paste("write",outfile))
 write.table(df, file = outfile, row.names = FALSE, col.names = TRUE, quote = FALSE, na = '', sep="\t")
 
+# Write mean output
+MEAN <- mean( as.numeric(df$distance_to_control) )
+df_mean <- data.frame(distance_to_control=MEAN, tag=TAG, stringsAsFactors=FALSE)
+outfile <- paste0(prefix,".control_mean.tsv")
+print(paste("write",outfile))
+write.table(df_mean, file = outfile, row.names = FALSE, col.names = TRUE, quote = FALSE, na = '', sep="\t")
+
 #plot
 library(ggplot2)
 theme_set(theme_bw())
