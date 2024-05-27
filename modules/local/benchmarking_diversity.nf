@@ -1,17 +1,17 @@
 process BENCHMARKING_DIVERSITY {
     tag "${md5sum_version}"
-    label 'process_single'
+    label 'process_low'
 
-    conda "conda-forge::r-base=4.2.3 conda-forge::r-rmarkdown=2.22 conda-forge::r-tidyverse=2.0.0 conda-forge::r-knitr=1.43 conda-forge::r-dt=0.28 conda-forge::r-dtplyr=1.3.1 conda-forge::r-formattable=0.2.1 conda-forge::r-purrr=1.0.1 conda-forge::r-vegan=2.6_4 conda-forge::r-optparse=1.7.3 conda-forge::r-ggplot2=3.4.2 conda-forge::r-dplyr=1.1.2 conda-forge::r-data.table=1.14.8 conda-forge::r-patchwork=1.1.2"
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/mulled-v2-b2ec1fea5791d428eebb8c8ea7409c350d31dada:a447f6b7a6afde38352b24c30ae9cd6e39df95c4-1' :
-        'biocontainers/mulled-v2-b2ec1fea5791d428eebb8c8ea7409c350d31dada:a447f6b7a6afde38352b24c30ae9cd6e39df95c4-1' }"
+    container "qiime2/core:2023.7"
 
     input:
-    path(distances)
+    path(table)
+    path(tree)
     val(md5sum_version)
 
+
     output:
+    path("*_distance.txt")  , emit: distance_txt
     path("*.svg")           , emit: svgs
     path("*.png")           , emit: pngs
     path("*.tsv")           , emit: tsv
@@ -23,19 +23,41 @@ process BENCHMARKING_DIVERSITY {
     task.ext.when == null || task.ext.when
 
     script:
-    def fbeta = task.ext.fbeta ?: 2
-    def prefix = task.ext.prefix ?: ""
-    def id_header = task.ext.id_header ?: "sequence"
+    // Exit if running this module with -profile conda / -profile mamba
+    if (workflow.profile.tokenize(',').intersect(['conda', 'mamba']).size() >= 1) {
+        error "QIIME2 does not support Conda. Please use Docker / Singularity / Podman instead."
+    }
+    def metric = task.ext.metric ?: "weighted_unifrac" // options are: 'generalized_unifrac', 'unweighted_unifrac', 'weighted_normalized_unifrac', 'weighted_unifrac'; described in https://forum.qiime2.org/t/alpha-and-beta-diversity-explanations-and-commands/2282
+    def args = task.ext.args ?: "" // options are: https://docs.qiime2.org/2023.7/plugins/available/diversity/beta-phylogenetic/
     """
-    benchmarking_diversity.r weighted_unifrac_distance.txt "$md5sum_version" >weighted_unifrac_distance.log
-    benchmarking_diversity.r jaccard_distance.txt "$md5sum_version" >jaccard_distance.log
-    benchmarking_diversity.r bray_curtis_distance.txt "$md5sum_version" >bray_curtis_distance.log
-    benchmarking_diversity.r unweighted_unifrac_distance.txt "$md5sum_version" >unweighted_unifrac_distance.log
+    # FIX: detecting a viable GPU on your system, but the GPU is unavailable for compute, causing UniFrac to fail.
+    # COMMENT: might be fixed in version after QIIME2 2023.5
+    export UNIFRAC_USE_GPU=N
+
+    export XDG_CONFIG_HOME="./xdgconfig"
+    export MPLCONFIGDIR="./mplconfigdir"
+    export NUMBA_CACHE_DIR="./numbacache"
+
+    qiime diversity beta-phylogenetic \\
+        --i-phylogeny "${tree}" \\
+        --i-table "${table}" \\
+        --p-metric "${metric}" \\
+        $args \\
+        --p-threads ${task.cpus} \\
+        --o-distance-matrix ${metric}_distance-matrix.qza
+
+    qiime tools export \\
+        --input-path ${metric}_distance-matrix.qza \\
+        --output-path ${metric}_matrix
+    mv ${metric}_matrix/distance-matrix.tsv ${metric}_distance.txt
+
+    benchmarking_diversity.r ${metric}_distance.txt "${md5sum_version}" >${metric}_distance.log
 
     echo "md5sum_version $md5sum_version" > "${md5sum_version}.md5sum_version"
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
+        qiime2: \$( qiime --version | sed '1!d;s/.* //' )
         R: \$(R --version | sed -n 1p | sed 's/R version //g' | sed 's/\\s.*\$//')
         ggplot2: \$(Rscript -e 'packageVersion("ggplot2")' | sed 's/.*‘//' | sed 's/’.*//')
     END_VERSIONS
