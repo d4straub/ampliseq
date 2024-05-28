@@ -876,10 +876,8 @@ workflow AMPLISEQ {
             params.benchmarking_barplot ? Channel.fromPath("${params.benchmarking_barplot}", checkIfExists: true) : Channel.empty(),
             //benchmarking_diversity
             params.benchmarking_diversity,
-            params.diversity_rarefaction_depth,
             run_qiime2 ? ch_asv : Channel.empty(),
-            run_qiime2 ? ch_seq : Channel.empty(),
-            ch_metadata
+            run_qiime2 ? ch_seq : Channel.empty()
         )
         ch_versions = ch_versions.mix(BENCHMARKING_WF.out.versions)
     }

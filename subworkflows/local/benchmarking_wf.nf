@@ -19,10 +19,8 @@ workflow BENCHMARKING_WF {
     ch_barplot
     ch_expected_barplot
     params_benchmarking_diversity
-    params_diversity_rarefaction_depth
     ch_observed_table_qza
     ch_observed_seq_qza
-    ch_metadata
 
     main:
     ch_benchmarking_versions = Channel.empty()
