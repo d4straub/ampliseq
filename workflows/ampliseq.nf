@@ -431,7 +431,7 @@ workflow AMPLISEQ {
     }
 
     //
-    // SUBWORKFLOW / MODULES : Taxonomic classification with DADA2, SINTAX and/or QIIME2
+    // SUBWORKFLOW / MODULES : Taxonomic classification with SIDLE
     //
     if ( params.multiregion ) {
         // separate sequences and abundances when several regions
@@ -866,7 +866,7 @@ workflow AMPLISEQ {
             //md5sum of params appended by pipeline version
             ( params.toString().md5() + "_${workflow.manifest.version}" ),
             //benchmarking_sequences
-            DADA2_MERGE.out.dada2asv,
+            run_qiime2 && !params.skip_abundance_tables ? QIIME2_EXPORT.out.comb_asv.map{it = it[1]}.first() : DADA2_MERGE.out.dada2asv,
             params.benchmarking_sequences ? Channel.fromPath("${params.benchmarking_sequences}", checkIfExists: true) : Channel.empty(),
             //benchmarking_taxonomy
             run_qiime2 && !params.skip_abundance_tables ? QIIME2_EXPORT.out.comb_asv : Channel.empty(),
