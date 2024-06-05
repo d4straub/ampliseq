@@ -38,20 +38,24 @@ process BENCHMARKING_DIVERSITY {
     export MPLCONFIGDIR="./mplconfigdir"
     export NUMBA_CACHE_DIR="./numbacache"
 
-    qiime diversity beta-phylogenetic \\
-        --i-phylogeny "${tree}" \\
-        --i-table "${table}" \\
-        --p-metric "${metric}" \\
-        $args \\
-        --p-threads ${task.cpus} \\
-        --o-distance-matrix ${metric}_distance-matrix.qza
+    IFS=, read -ra metric <<< "$metric"
+    for m in "\${metric[@]}"
+    do
+        qiime diversity beta-phylogenetic \\
+            --i-phylogeny "${tree}" \\
+            --i-table "${table}" \\
+            --p-metric "\${m}" \\
+            $args \\
+            --p-threads ${task.cpus} \\
+            --o-distance-matrix \${m}_distance-matrix.qza
 
-    qiime tools export \\
-        --input-path ${metric}_distance-matrix.qza \\
-        --output-path ${metric}_matrix
-    mv ${metric}_matrix/distance-matrix.tsv ${metric}_distance.txt
+        qiime tools export \\
+            --input-path \${m}_distance-matrix.qza \\
+            --output-path \${m}_matrix
+        mv \${m}_matrix/distance-matrix.tsv \${m}_distance.txt
 
-    benchmarking_diversity.r ${metric}_distance.txt "${md5sum_version}" >${metric}_distance.log
+        benchmarking_diversity.r \${m}_distance.txt "${md5sum_version}" >\${m}_distance.log
+    done
 
     echo "md5sum_version $md5sum_version" > "${md5sum_version}.md5sum_version"
 
