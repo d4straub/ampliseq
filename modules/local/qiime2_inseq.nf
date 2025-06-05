@@ -2,8 +2,8 @@ process QIIME2_INSEQ {
     tag "${seq}"
     label 'process_low'
 
-    conda "${projectDir}/modules/local/envs/qiime2-amplicon-2024.10-py310-linux-conda.yml"
-    container "qiime2/amplicon:2024.10"
+    conda "${projectDir}/modules/local/envs/qiime2-amplicon-ubuntu-2025.4-conda.yml"
+    container "qiime2/amplicon:2025.4"
 
     input:
     path(seq)

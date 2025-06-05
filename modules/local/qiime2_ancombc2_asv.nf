@@ -1,7 +1,6 @@
-process QIIME2_ANCOMBC_ASV {
+process QIIME2_ANCOMBC2_ASV {
     tag "${table.baseName}-${formula_in}"
     label 'process_medium'
-    label 'single_cpu'
     label 'process_long'
     label 'error_ignore'
 
@@ -12,33 +11,33 @@ process QIIME2_ANCOMBC_ASV {
     tuple path(metadata), path(table), val(formula_in)
 
     output:
-    path("da_barplot/*")   , emit: da_barplot
-    path("differentials/*"), emit: differentials
-    path("*.qza")          , emit: qza
-    path("*.qzv")          , emit: qzv
-    path "versions.yml"    , emit: versions
+    path("visualizer/*")         , emit: plot
+    path("differentials/*")      , emit: differentials
+    path("*.qza")                , emit: qza
+    path("*.qzv")                , emit: qzv
+    path "versions.yml"          , emit: versions
 
     script:
     def args        = task.ext.args ?: ''
-    def args2       = task.ext.args2 ?: ''
     def formula     = formula_in ?: "${table.baseName}"
     """
     export XDG_CONFIG_HOME="./xdgconfig"
     export MPLCONFIGDIR="./mplconfigdir"
     export NUMBA_CACHE_DIR="./numbacache"
 
-    qiime composition ancombc \\
+    qiime composition ancombc2 \\
         --i-table "${table}" \\
         --m-metadata-file "${metadata}" \\
         $args \\
-        --p-formula '${formula}' \\
-        --o-differentials "${formula}.differentials.qza" \\
+        --p-fixed-effects-formula '${formula}' \\
+        --o-ancombc2-output "${formula}.differentials.qza" \\
+        --p-num-processes ${task.cpus}  \\
         --verbose
     qiime tools export \\
         --input-path "${formula}.differentials.qza" \\
         --output-path "differentials/Category-${formula}-ASV"
 
-    # Generate tabular view of ANCOM-BC output
+    # Generate tabular view of ANCOMBC2 output
     qiime composition tabulate \\
         --i-data "${formula}.differentials.qza" \\
         --o-visualization "${formula}.differentials.qzv"
@@ -46,13 +45,12 @@ process QIIME2_ANCOMBC_ASV {
         --input-path "${formula}.differentials.qzv" \\
         --output-path "differentials/Category-${formula}-ASV"
 
-    # Generate bar plot views of ANCOM-BC output
-    qiime composition da-barplot \\
+    # Generate bar plot views of ANCOMBC2 output
+    qiime composition ancombc2-visualizer \\
         --i-data "${formula}.differentials.qza" \\
-        $args2 \\
-        --o-visualization "${formula}.da_barplot.qzv"
-    qiime tools export --input-path "${formula}.da_barplot.qzv" \\
-        --output-path "da_barplot/Category-${formula}-ASV"
+        --o-visualization "${formula}.visualizer.qzv"
+    qiime tools export --input-path "${formula}.visualizer.qzv" \\
+        --output-path "visualizer/Category-${formula}-ASV"
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
