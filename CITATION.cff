@@ -1,0 +1,102 @@
+cff-version: 1.2.0
+title: nf-core/ampliseq
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file and the publication
+  https://dx.doi.org/110.3389/fmicb.2020.550420 as
+  described below. Additionally, please
+  cite the nf-core publication
+  https://dx.doi.org/10.1038/s41587-020-0439-x.
+  Also cite all tools that the pipelines depends on
+  as detailed in the CITATIONS.md file.
+type: software
+authors:
+  - given-names: Daniel
+    family-names: Straub
+    affiliation: Quantitative Biology Center (QBiC), University of Tübingen, Germany
+    orcid: 'https://orcid.org/0000-0002-2553-0660'
+  - given-names: Jeanette
+    family-names: Tångrot
+    affiliation: NBIS, SciLifeLab, Umeå University, Sweden
+  - given-names: Daniel
+    family-names: Lundin
+    affiliation: Linnaeus University, Sweden
+    orcid: 'https://orcid.org/0000-0002-8779-6464'
+  - given-names: Alexander
+    family-names: Peltzer
+    affiliation: Boehringer Ingelheim Pharma GmbH and Co KG Biberach, Germany
+    orcid: 'https://orcid.org/0000-0002-6503-2180'
+#TODO HERE ARE MANY MISSING!!!
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.1493841
+    description: >-
+      This DOI represents all versions, and will always
+      resolve to the latest one.
+repository-code: 'https://github.com/nf-core/ampliseq'
+url: 'https://nf-co.re/ampliseq'
+abstract: >-
+  nfcore/ampliseq is a bioinformatics analysis pipeline used
+  for amplicon sequencing, supporting denoising of any
+  amplicon and supports a variety of taxonomic databases for
+  taxonomic assignment including 16S, ITS, CO1 and 18S.
+  Phylogenetic placement is also possible. Multiple region
+  analysis such as 5R is implemented. Supported is
+  paired-end Illumina or single-end Illumina, PacBio and
+  IonTorrent data. Default is the analysis of 16S rRNA gene
+  amplicons sequenced paired-end with Illumina.
+keywords:
+  - workflow
+  - pipeline
+  - nextflow
+  - nf-core
+  - metagenomics
+  - microbiome
+  - amplicon-sequencing
+  - taxonomic-profiling
+  - metataxonomics
+  - metabarcoding
+  - edna
+  - taxonomic-classification
+  - qiime2
+  - 16s
+  - rrna
+  - its
+  - 18s
+  - illumina
+  - iontorrent
+  - pacbio
+license: MIT
+version: 2.16.0dev
+date-released: '2025-12-20'
+preferred-citation:
+  authors:
+    - family-names: Straub
+      given-names: Daniel
+      affiliation: University of Tübingen
+      orcid: 'https://orcid.org/0000-0002-2553-0660'
+    - family-names: Blackwell
+      given-names: Nia
+      affiliation: University of Tübingen
+    - family-names: Langarica-Fuentes
+      given-names: Adrian
+      affiliation: University of Tübingen
+    - family-names: Peltzer
+      given-names: Alexander
+      affiliation: University of Tübingen
+      orcid: 'https://orcid.org/0000-0002-6503-2180'
+    - family-names: Nahnsen
+      given-names: Sven
+      affiliation: University of Tübingen
+      orcid: 'https://orcid.org/0000-0002-4375-0691'
+    - family-names: Kleindienst
+      given-names: Sara
+      affiliation: University of Tübingen
+      orcid: 'https://orcid.org/0000-0001-8304-9149'
+  title: "Interpretations of Environmental Microbial Community Studies Are Biased by the Selected 16S rRNA (Gene) Amplicon Sequencing Pipeline"
+  type: article
+  doi: 10.3389/fmicb.2020.550420
+  journal: "Frontiers in Microbiology"
+  start: 2652
+  volume: 11
+  year: 2020
